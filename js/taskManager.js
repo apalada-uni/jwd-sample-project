@@ -1,3 +1,5 @@
+import {db} from "./database.js";
+
 // Create the HTML for a task
 // Add an data-task-id attribute to each task
 // OPTIONAL 1: Add visible or invisible class to the "Mark As Done" button depending on if the status is 'TODO'
@@ -27,77 +29,98 @@ export default class TaskManager {
     // Set up the tasks and currentId property in the contructor
     constructor(currentId = 0) {
         this.tasks = [];
-        this.currentId = currentId;
+
+        this.unsubscribe = db.collection("tasks")
+            .onSnapshot((snapshot) => {
+                this.tasks = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+
+                this.render();
+            });
     }
 
     // Create the addTask method
     addTask(name, description, assignedTo, dueDate) {
-        const task = {
-            // Increment the currentId property
-            id: this.currentId++,
+        //Adding document to a collection in the Firestore
+        db.collection("tasks").add({
             name: name,
             description: description,
             assignedTo: assignedTo,
             dueDate: dueDate,
             status: 'TODO'
-        };
-
-        // Push the task to the tasks property
-        this.tasks.push(task);
+        })
+        .then((docRef) => {
+            console.log("Document written with ID: ", docRef.id);
+            this.load();
+        })
+        .catch((error) => {
+            console.error("Error adding document: ", error);
+        });
     }
 
     // Create the deleteTask method
     deleteTask(taskId) {
-        const newTasks = [];
-
-        // Loop over the tasks
-        for (let i = 0; i < this.tasks.length; i++) {
-            // Get the current task in the loop
-            const task = this.tasks[i];
-
-            // Check if the task id is not the task id passed in as a parameter
-            if (task.id !== taskId) {
-                // Push the task to the newTasks array
-                newTasks.push(task);
-            }
-        }
-
-        // Set this.tasks to newTasks
-        this.tasks = newTasks;
+        //Deleting a document from a collection in the Firestore
+        db.collection("tasks")
+            .doc(taskId)
+            .delete()
+            .then(() => {
+                console.log("Document deleted");
+                this.load();
+            }) // Document deleted
+            .catch((error) => console.error("Error deleting document", error));
     }
 
 
     getTaskById(taskId) {
-        console.log(`getTaskById(${taskId})`);
-        // Create a variable to store the found task
-        let foundTask;
+        // Getting data from the collection in Firestore
+        return db.collection("tasks")
+            .doc(taskId)
+            .get()
+            .then((doc) => {
+                console.log(doc);
+                if (!doc.exists) return;
+                const data = doc.data();
+                data.id = doc.id;
+                console.log("Document:", data);
+                // console.log("Document data:", doc.data());
+                return data;
+              })
+            .catch((error)=> {
+                console.log(error);
+                return error;
+            })
+    }
 
-        // Loop over the tasks and find the task with the id passed as a parameter
-        for (let i = 0; i < this.tasks.length; i++) {
-            // Get the current task in the loop
-            const task = this.tasks[i];
+    // Load the collection data from the database
+    async load() {
+        this.tasks = await db.collection("tasks")
+            .get()
+            .then((snapshot) => {
+                const tasks = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                console.log("All data in 'tasks' collection", tasks);
+                return tasks; 
+                // [ { id: 'glMeZvPpTN1Ah31sKcnj', name: 'Wash dishes' } ]
+            });
 
-            // Check if its the right task by comparing the task's id to the id passed as a parameter
-            if (task.id === taskId) {
-                // Store the task in the foundTask variable
-                foundTask = task;
-            }
-        }
-
-        // Return the found task
-        return foundTask;
+        this.render(this.tasks)
     }
 
     // Create the render method
-    render() {
+    render(tasks) {
         // Create an array to store the tasks' HTML
         const tasksHtmlList = [];
-        console.log(`tasks: ${this.tasks.length}`);
+        console.log(`tasks: ${tasks.length}`);
 
         // Loop over our tasks and create the html, storing it in the array
-        for (let i = 0; i < this.tasks.length; i++) {
+        for (let i = 0; i < tasks.length; i++) {
             // Get the current task in the loop
-            const task = this.tasks[i];
+            const task = tasks[i];
 
             // Format the date
             const date = new Date(task.dueDate);
@@ -120,40 +143,23 @@ export default class TaskManager {
         tasksList.innerHTML = tasksHtml;
     }
 
-    // Create the save method
-    save() {
-        // Create a JSON string of the tasks
-        const tasksJson = JSON.stringify(this.tasks);
-
-        // Store the JSON string in localStorage
-        localStorage.setItem('tasks', tasksJson);
-
-        // Convert the currentId to a string;
-        const currentId = String(this.currentId);
-
-        // Store the currentId in localStorage
-        localStorage.setItem('currentId', currentId);
-    }
-
-    // Create the load method
-    load() {
-        // Check if any tasks are saved in localStorage
-        if (localStorage.getItem('tasks')) {
-            // Get the JSON string of tasks in localStorage
-            const tasksJson = localStorage.getItem('tasks');
-
-            // Convert it to an array and store it in our TaskManager
-            this.tasks = JSON.parse(tasksJson);
-        }
-
-        // Check if the currentId is saved in localStorage
-        if (localStorage.getItem('currentId')) {
-            // Get the currentId string in localStorage
-            const currentId = localStorage.getItem('currentId');
-
-            // Convert the currentId to a number and store it in our TaskManager
-            this.currentId = Number(currentId);
-        } 
+    // Create the update method
+    update(task) {
+        return db.collection("tasks")
+            .doc(task.id)
+            .update({
+                // id: task.id,
+                  ...task,
+              })
+              .then(() => {
+                console.log("Document updated"); // Document updated
+                this.load();
+                return `Document updated: ${JSON.stringify(task)}`;
+            })
+              .catch((error) => {
+                console.error("Error updating doc", error);
+                return `Error updating doc: ${error}`;
+              });	
     }
 }
 

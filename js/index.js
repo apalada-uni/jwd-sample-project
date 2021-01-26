@@ -4,11 +4,9 @@ let selectedTaskId = '';
 // Initialize a new TaskManager with currentId set to 0
 const taskManager = new TaskManager(0);
 
-// Load the tasks from localStorage
 taskManager.load();
+console.log(`loaded tasks: ${taskManager.tasks}`);
 
-// Render the tasks to the page
-taskManager.render();
 
 // Select the New Task Form
 const newTaskForm = document.querySelector('#newTaskForm');
@@ -41,22 +39,21 @@ newTaskForm.addEventListener('submit', (event) => {
         // Add the task to the task manager
         taskManager.addTask(name, description, assignedTo, dueDate);
     } else {
-        const task = taskManager.getTaskById(selectedTaskId);
-        
-        task.name  = name;
-        task.description = description;
-        task.assignedTo = assignedTo;
-        task.dueDate = dueDate;
+        taskManager.getTaskById(selectedTaskId)
+            .then((task)=>{
+                task.name  = name;
+                task.description = description;
+                task.assignedTo = assignedTo;
+                task.dueDate = dueDate;
+
+                taskManager.update(task);
+            })
+            .catch((error)=>{
+                console.log(error);
+            });
 
         submitButton.innerHTML = "Add Task";
     }
-    
-
-    // Save the tasks to localStorage
-    taskManager.save();
-
-    // Render the tasks
-    taskManager.render();
 
     // Clear the form
     newTaskNameInput.value = '';
@@ -91,22 +88,29 @@ function processDone(event) {
     const parentTask = event.target.parentElement.parentElement;
 
     // Get the taskId of the parent Task.
-    const taskId = Number(parentTask.dataset.taskId);
+    const taskId = parentTask.dataset.taskId;
 
     // Get the task from the TaskManager using the taskId
-        const task =  taskManager.getTaskById(taskId);
-        
-        
-    // console.log(`task to process: ${task}`);
-    // Update the task status to 'DONE'
-    task.status = 'DONE';
+    const task = taskManager.getTaskById(taskId)
+        .then((task)=>{
+            console.log(`task to process: ${task.id}`);
+            task.status = 'DONE';
+            taskManager.update(task);
+        })
+        .catch((error)=>{
+            console.log(error);
+        });
 
-    // Save the tasks to localStorage
-    taskManager.save();
+    //Async-Await method
+    // try {
+    //     const task = await taskManager.getTaskById(taskId);
+    //     task.status = 'DONE';
+    //     taskManager.update(task);  
+    // } catch (error) {
+    //     console.log(error);
+    // }
+    
 
-
-    // Render the tasks
-    taskManager.render();
 }
 
 function processDelete(event) {
@@ -115,18 +119,10 @@ function processDelete(event) {
     const parentTask = event.target.parentElement.parentElement;
 
     // Get the taskId of the parent Task.
-    const taskId = Number(parentTask.dataset.taskId);
+    const taskId = parentTask.dataset.taskId;
 
     // Delete the task
     taskManager.deleteTask(taskId);
-
-    // Save the tasks to localStorage
-    taskManager.save();
-
-    // Render the tasks
-    taskManager.render();
-
-
 }
 
 function processEdit(event) {
@@ -135,21 +131,57 @@ function processEdit(event) {
     const parentTask = event.target.parentElement.parentElement;
 
     // Get the taskId of the parent Task.
-    const taskId = Number(parentTask.dataset.taskId);
-    // console.log(`taskId: ${taskId}`);
+    const taskId = parentTask.dataset.taskId;
 
-    const task = taskManager.getTaskById(taskId);
+    const task = taskManager.getTaskById(taskId)
+        .then((task)=>{
+                selectedTaskId = taskId;
+                submitButton.innerHTML = "Update Task";
+                newTaskNameInput.value = task.name;
+                newTaskDescription.value = task.description;
+                newTaskAssignedTo.value = task.assignedTo;
+                newTaskDueDate.value = task.dueDate;
+            })
+            .catch((error)=>{
+                console.log(error);
+            });
 
-    selectedTaskId = taskId;
-    submitButton.innerHTML = "Update Task";
-    newTaskNameInput.value = task.name;
-    newTaskDescription.value = task.description;
-    newTaskAssignedTo.value = task.assignedTo;
-    newTaskDueDate.value = task.dueDate;
+    // Async-Await method
+    // try {
+    //     const task = await taskManager.getTaskById(taskId);
 
-    // Save the tasks to localStorage
-    taskManager.save();
+    //     submitButton.innerHTML = "Update Task";
+    
+    //     selectedTaskId = task.id;
+    //     newTaskNameInput.value = task.name;
+    //     newTaskDescription.value = task.description;
+    //     newTaskAssignedTo.value = task.assignedTo;
+    //     newTaskDueDate.value = task.dueDate;
+    // } catch (error) {
+    //     console.log(error);
+    // }
 
-    // Render the tasks
-    taskManager.render();
 }
+
+// window.onbeforeunload = function() {
+//     console.log('Page is about to be closed!');
+//     taskManager.unsubscribe();
+//     return '';
+// }
+
+// window.addEventListener("beforeunload", function (e) {
+//     var confirmationMessage = "\o/";
+//     console.log('Page is about to be closed!');
+//     taskManager.unsubscribe();
+
+//     (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+//     return confirmationMessage;                            //Webkit, Safari, Chrome
+// });
+
+// document.querySelector('#unsubscribe').addEventListener('click', function (e) {
+//     e.preventDefault();
+//     const answer = confirm('Do you really want to close?');
+
+//     if(answer) taskManager.unsubscribe();
+
+// });
