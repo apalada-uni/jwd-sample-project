@@ -30,15 +30,15 @@ export default class TaskManager {
     constructor(currentId = 0) {
         this.tasks = [];
 
-        this.unsubscribe = db.collection("tasks")
-            .onSnapshot((snapshot) => {
-                this.tasks = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
+        // this.unsubscribe = db.collection("tasks")
+        //     .onSnapshot((snapshot) => {
+        //         this.tasks = snapshot.docs.map((doc) => ({
+        //             id: doc.id,
+        //             ...doc.data(),
+        //         }));
 
-                this.render();
-            });
+        //         this.render();
+        //     });
     }
 
     // Create the addTask method
