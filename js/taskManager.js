@@ -30,7 +30,9 @@ export default class TaskManager {
     constructor(currentId = 0) {
         this.tasks = [];
 
+        // Use onSnapshot() to get a synchronous and live data updates
         // this.unsubscribe = db.collection("tasks")
+        //     .orderBy('name', 'asc')
         //     .onSnapshot((snapshot) => {
         //         this.tasks = snapshot.docs.map((doc) => ({
         //             id: doc.id,
@@ -69,7 +71,7 @@ export default class TaskManager {
             .then(() => {
                 console.log("Document deleted");
                 this.load();
-            }) // Document deleted
+            }) 
             .catch((error) => console.error("Error deleting document", error));
     }
 
@@ -80,47 +82,47 @@ export default class TaskManager {
             .doc(taskId)
             .get()
             .then((doc) => {
-                console.log(doc);
                 if (!doc.exists) return;
-                const data = doc.data();
-                data.id = doc.id;
+                
+                const data = {
+                    id: doc.id,
+                    ...doc.data()
+                }
                 console.log("Document:", data);
-                // console.log("Document data:", doc.data());
+
                 return data;
               })
             .catch((error)=> {
-                console.log(error);
+                console.error("Error in getting task: ", error);
                 return error;
             })
     }
 
     // Load the collection data from the database
-    async load() {
-        this.tasks = await db.collection("tasks")
+    load() {
+        db.collection("tasks")
+            .orderBy('name', 'desc') // set order by name
             .get()
             .then((snapshot) => {
-                const tasks = snapshot.docs.map((doc) => ({
+                this.tasks = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
                 }));
-                console.log("All data in 'tasks' collection", tasks);
-                return tasks; 
-                // [ { id: 'glMeZvPpTN1Ah31sKcnj', name: 'Wash dishes' } ]
+                console.log("All data in 'tasks' collection", this.tasks);
+                this.render()
             });
-
-        this.render(this.tasks)
     }
 
     // Create the render method
-    render(tasks) {
+    render() {
         // Create an array to store the tasks' HTML
         const tasksHtmlList = [];
-        console.log(`tasks: ${tasks.length}`);
+        console.log(`tasks: ${this.tasks.length}`);
 
         // Loop over our tasks and create the html, storing it in the array
-        for (let i = 0; i < tasks.length; i++) {
+        for (let i = 0; i < this.tasks.length; i++) {
             // Get the current task in the loop
-            const task = tasks[i];
+            const task = this.tasks[i];
 
             // Format the date
             const date = new Date(task.dueDate);
@@ -154,11 +156,9 @@ export default class TaskManager {
               .then(() => {
                 console.log("Document updated"); // Document updated
                 this.load();
-                return `Document updated: ${JSON.stringify(task)}`;
             })
               .catch((error) => {
                 console.error("Error updating doc", error);
-                return `Error updating doc: ${error}`;
               });	
     }
 }

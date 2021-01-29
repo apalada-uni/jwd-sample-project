@@ -163,12 +163,15 @@ function processEdit(event) {
 
 }
 
-// window.onbeforeunload = function() {
+// Use this code to unsubscribe to the collection when the page is closed
+// Using onbeforeunload method
+// window.onbeforeunload = ()=> {
 //     console.log('Page is about to be closed!');
 //     taskManager.unsubscribe();
 //     return '';
 // }
 
+// Using an event listener
 // window.addEventListener("beforeunload", function (e) {
 //     var confirmationMessage = "\o/";
 //     console.log('Page is about to be closed!');
@@ -176,12 +179,4 @@ function processEdit(event) {
 
 //     (e || window.event).returnValue = confirmationMessage; //Gecko + IE
 //     return confirmationMessage;                            //Webkit, Safari, Chrome
-// });
-
-// document.querySelector('#unsubscribe').addEventListener('click', function (e) {
-//     e.preventDefault();
-//     const answer = confirm('Do you really want to close?');
-
-//     if(answer) taskManager.unsubscribe();
-
 // });
