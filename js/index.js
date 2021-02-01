@@ -102,6 +102,7 @@ function processDone(event) {
         });
 
     //Async-Await method
+    // Remember to set your function as async before using await
     // try {
     //     const task = await taskManager.getTaskById(taskId);
     //     task.status = 'DONE';
@@ -147,6 +148,7 @@ function processEdit(event) {
             });
 
     // Async-Await method
+    // Remember to set your function as async before using await
     // try {
     //     const task = await taskManager.getTaskById(taskId);
 
